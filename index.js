@@ -9,6 +9,8 @@ let users = [
 ];
 
 app.use(morgan("dev"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/users", (req, res) => {
   req.query.limit = req.query.limit || 10;
@@ -38,6 +40,23 @@ app.delete("/users/:id", (req, res) => {
   }
   users = users.filter(user => user.id === id);
   return res.status(204).end();
+});
+
+app.post("/users", (req, res) => {
+  const name = req.body.name;
+
+  if (!name) {
+    return res.status(400).end();
+  }
+
+  const isConflict = users.filter(user => user.name === name).length;
+  if (isConflict) {
+    return res.status(409).end();
+  }
+  const id = Date.now();
+  const user = { id, name };
+  users.push(user);
+  return res.status(201).json(user);
 });
 
 app.listen(3000, () => {
