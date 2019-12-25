@@ -31,6 +31,15 @@ app.get("/users/:id", (req, res) => {
   return res.json(user);
 });
 
+app.delete("/users/:id", (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (Number.isNaN(id)) {
+    return res.status(400).end();
+  }
+  users = users.filter(user => user.id === id);
+  return res.status(204).end();
+});
+
 app.listen(3000, () => {
   console.log("Example app listening on port 3000!");
 });
