@@ -20,11 +20,16 @@ const show = (req, res) => {
   if (Number.isNaN(id)) {
     return res.status(400).end();
   }
-  const user = users.filter(user => user.id === id)[0];
-  if (!user) {
-    return res.status(404).end();
-  }
-  return res.json(user);
+  models.User.findOne({
+    where: {
+      id
+    }
+  }).then(user => {
+    if (!user) {
+      return res.status(404).end();
+    }
+    return res.json(user);
+  });
 };
 
 const destroy = (req, res) => {
@@ -32,8 +37,11 @@ const destroy = (req, res) => {
   if (Number.isNaN(id)) {
     return res.status(400).end();
   }
-  users = users.filter(user => user.id !== id);
-  return res.status(204).end();
+  models.User.destroy({
+    where: { id }
+  }).then(() => {
+    return res.status(204).end();
+  });
 };
 
 const create = (req, res) => {
@@ -43,14 +51,16 @@ const create = (req, res) => {
     return res.status(400).end();
   }
 
-  const isConflict = users.filter(user => user.name === name).length;
-  if (isConflict) {
-    return res.status(409).end();
-  }
-  const id = Date.now();
-  const user = { id, name };
-  users.push(user);
-  return res.status(201).json(user);
+  models.User.create({ name })
+    .then(user => {
+      return res.status(201).json(user);
+    })
+    .catch(err => {
+      if (err.name === "SequelizeUniqueConstraintError") {
+        return res.status(409).end();
+      }
+      return res.status(500).end();
+    });
 };
 
 const update = (req, res) => {
@@ -64,17 +74,25 @@ const update = (req, res) => {
     return res.status(400).end();
   }
 
-  const isConflict = users.filter(user => user.name === name).length;
-  if (isConflict) {
-    return res.status(409).end();
-  }
-
-  const user = users.filter(user => user.id === id)[0];
-  if (!user) {
-    return res.status(404).end();
-  }
-  user.name = name;
-  return res.json(user);
+  models.User.findOne({
+    where: { id }
+  }).then(user => {
+    if (!user) {
+      return res.status(404).end();
+    }
+    user.name = name;
+    user
+      .save()
+      .then(_ => {
+        return res.json(user);
+      })
+      .catch(err => {
+        if (err.name === "SequelizeUniqueConstraintError") {
+          return res.status(409).end();
+        }
+        return res.status(500).end();
+      });
+  });
 };
 module.exports = {
   index: index,
